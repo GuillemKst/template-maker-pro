@@ -8,8 +8,9 @@ import { Download, FileText, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Variable, FormData } from "./PdfBuilder";
 import { toast } from "sonner";
-import { PDFDocument, rgb } from "pdf-lib";
 import { saveAs } from "file-saver";
+import mammoth from "mammoth";
+import jsPDF from "jspdf";
 
 interface FormFillerProps {
   docxFile: File | null;
@@ -103,11 +104,21 @@ export const FormFiller = ({ docxFile, variables, formData, onFormDataChange }: 
       // Get the generated docx
       const generatedDocx = doc.getZip().generate({ type: "arraybuffer" });
       
-      // For now, save as DOCX (we can add PDF conversion later)
-      const blob = new Blob([generatedDocx], { 
-        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-      });
-      saveAs(blob, `filled-document-${Date.now()}.docx`);
+      // Convert DOCX to HTML using mammoth
+      const htmlResult = await mammoth.convertToHtml({ arrayBuffer: generatedDocx });
+      
+      // Create PDF from HTML using jsPDF
+      const pdf = new jsPDF();
+      const htmlContent = htmlResult.value;
+      
+      // Simple text extraction and PDF creation
+      const textContent = htmlContent.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const lines = pdf.splitTextToSize(textContent, 180);
+      
+      pdf.text(lines, 15, 20);
+      
+      // Save as PDF
+      pdf.save(`filled-document-${Date.now()}.pdf`);
       
       toast.success("Document generated and downloaded successfully!");
     } catch (error) {
@@ -191,7 +202,7 @@ export const FormFiller = ({ docxFile, variables, formData, onFormDataChange }: 
             size="lg"
           >
             <Download className="w-4 h-4 mr-2" />
-            {isGenerating ? "Generating Document..." : "Generate & Download DOCX"}
+            {isGenerating ? "Generating PDF..." : "Generate & Download PDF"}
           </Button>
         </CardContent>
       </Card>
