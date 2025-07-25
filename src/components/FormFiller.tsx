@@ -12,13 +12,13 @@ import { PDFDocument, rgb } from "pdf-lib";
 import { saveAs } from "file-saver";
 
 interface FormFillerProps {
-  pdfFile: File | null;
+  docxFile: File | null;
   variables: Variable[];
   formData: FormData;
   onFormDataChange: (data: FormData) => void;
 }
 
-export const FormFiller = ({ pdfFile, variables, formData, onFormDataChange }: FormFillerProps) => {
+export const FormFiller = ({ docxFile, variables, formData, onFormDataChange }: FormFillerProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleInputChange = (variableId: string, value: string) => {
@@ -64,8 +64,8 @@ export const FormFiller = ({ pdfFile, variables, formData, onFormDataChange }: F
   };
 
   const generatePdf = async () => {
-    if (!pdfFile) {
-      toast.error("Please upload a PDF template first");
+    if (!docxFile) {
+      toast.error("Please upload a DOCX template first");
       return;
     }
 
@@ -76,41 +76,43 @@ export const FormFiller = ({ pdfFile, variables, formData, onFormDataChange }: F
     setIsGenerating(true);
     
     try {
-      // Read the PDF file
-      const pdfBytes = await pdfFile.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(pdfBytes);
+      // Read the DOCX file
+      const docxBytes = await docxFile.arrayBuffer();
       
-      // Get the first page
-      const pages = pdfDoc.getPages();
-      const firstPage = pages[0];
+      // Use docxtemplater to replace variables
+      const Docxtemplater = (await import("docxtemplater")).default;
+      const PizZip = (await import("pizzip")).default;
       
-      // For demonstration, we'll add text overlays
-      // In a real implementation, you'd want to parse the PDF content and replace placeholders
-      let yPosition = firstPage.getHeight() - 100;
-      
-      variables.forEach((variable, index) => {
-        const value = formData[variable.id] || "";
-        if (value) {
-          firstPage.drawText(`${variable.name}: ${value}`, {
-            x: 50,
-            y: yPosition - (index * 30),
-            size: 12,
-            color: rgb(0, 0, 0),
-          });
-        }
+      const zip = new PizZip(docxBytes);
+      const doc = new Docxtemplater(zip, {
+        paragraphLoop: true,
+        linebreaks: true,
       });
 
-      // Generate the modified PDF
-      const modifiedPdfBytes = await pdfDoc.save();
+      // Create data object for template
+      const templateData: Record<string, string> = {};
+      variables.forEach((variable) => {
+        // Remove {{ }} from placeholder to get the key
+        const key = variable.placeholder.replace(/[{}]/g, "");
+        templateData[key] = formData[variable.id] || "";
+      });
+
+      // Render the document with the data
+      doc.render(templateData);
+
+      // Get the generated docx
+      const generatedDocx = doc.getZip().generate({ type: "arraybuffer" });
       
-      // Save the file
-      const blob = new Blob([modifiedPdfBytes], { type: "application/pdf" });
-      saveAs(blob, `filled-document-${Date.now()}.pdf`);
+      // For now, save as DOCX (we can add PDF conversion later)
+      const blob = new Blob([generatedDocx], { 
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+      });
+      saveAs(blob, `filled-document-${Date.now()}.docx`);
       
-      toast.success("PDF generated and downloaded successfully!");
+      toast.success("Document generated and downloaded successfully!");
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF. Please try again.");
+      console.error("Error generating document:", error);
+      toast.error("Failed to generate document. Please check your template format.");
     } finally {
       setIsGenerating(false);
     }
@@ -126,12 +128,12 @@ export const FormFiller = ({ pdfFile, variables, formData, onFormDataChange }: F
     }
   };
 
-  if (!pdfFile) {
+  if (!docxFile) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Please upload a PDF template first to enable form filling and document generation.
+          Please upload a DOCX template first to enable form filling and document generation.
         </AlertDescription>
       </Alert>
     );
@@ -189,7 +191,7 @@ export const FormFiller = ({ pdfFile, variables, formData, onFormDataChange }: F
             size="lg"
           >
             <Download className="w-4 h-4 mr-2" />
-            {isGenerating ? "Generating PDF..." : "Generate & Download PDF"}
+            {isGenerating ? "Generating Document..." : "Generate & Download DOCX"}
           </Button>
         </CardContent>
       </Card>

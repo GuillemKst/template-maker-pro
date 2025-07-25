@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PdfUploader } from "./PdfUploader";
+import { DocxUploader } from "./DocxUploader";
 import { VariableManager } from "./VariableManager";
 import { FormBuilder } from "./FormBuilder";
 import { FormFiller } from "./FormFiller";
@@ -20,8 +20,8 @@ export interface FormData {
   [key: string]: string;
 }
 
-export const PdfBuilder = () => {
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
+export const DocxToPdfBuilder = () => {
+  const [docxFile, setDocxFile] = useState<File | null>(null);
   const [variables, setVariables] = useState<Variable[]>([]);
   const [formData, setFormData] = useState<FormData>({});
   const [activeTab, setActiveTab] = useState("upload");
@@ -46,9 +46,9 @@ export const PdfBuilder = () => {
     <div className="min-h-screen bg-muted/30">
       <div className="container mx-auto p-6">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-4">PDF Builder</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">DOCX to PDF Builder</h1>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Upload your PDF template, define variables, and create dynamic forms that generate personalized documents.
+            Upload your DOCX template with variables (like {'{{name}}'}, {'{{email}}'}), define the form fields, and generate personalized documents.
           </p>
         </div>
 
@@ -56,7 +56,7 @@ export const PdfBuilder = () => {
           <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              Upload PDF
+              Upload DOCX
             </TabsTrigger>
             <TabsTrigger value="variables" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -75,10 +75,10 @@ export const PdfBuilder = () => {
           <TabsContent value="upload" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Upload PDF Template</CardTitle>
+                <CardTitle>Upload DOCX Template</CardTitle>
               </CardHeader>
               <CardContent>
-                <PdfUploader onFileUpload={setPdfFile} currentFile={pdfFile} />
+                <DocxUploader onFileUpload={setDocxFile} currentFile={docxFile} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -112,7 +112,7 @@ export const PdfBuilder = () => {
 
           <TabsContent value="fill" className="space-y-6">
             <FormFiller
-              pdfFile={pdfFile}
+              docxFile={docxFile}
               variables={variables}
               formData={formData}
               onFormDataChange={setFormData}

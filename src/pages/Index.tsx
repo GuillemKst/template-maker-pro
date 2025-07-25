@@ -1,7 +1,7 @@
-import { PdfBuilder } from "@/components/PdfBuilder";
+import { DocxToPdfBuilder } from "@/components/PdfBuilder";
 
 const Index = () => {
-  return <PdfBuilder />;
+  return <DocxToPdfBuilder />;
 };
 
 export default Index;
