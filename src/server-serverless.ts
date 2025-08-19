@@ -177,37 +177,21 @@ function generateWelcomeCardHTML(data: any, config: any) {
 </html>`;
 }
 
-// Convert HTML to image using Puppeteer (serverless-friendly)
+// Convert HTML to image using Playwright (serverless-friendly)
 async function htmlToImage(html: string, width: number, height: number) {
   let browser;
   
   try {
-    // Try to use chrome-aws-lambda for serverless environments
-    let puppeteer;
-    let chromium;
+    const { chromium } = await import('@playwright/browser-chromium');
     
-    try {
-      chromium = await import('chrome-aws-lambda');
-      puppeteer = chromium.puppeteer;
-    } catch {
-      // Fallback to regular puppeteer for local development
-      puppeteer = await import('puppeteer');
-    }
-    
-    const executablePath = process.env.NODE_ENV === 'production' && chromium 
-      ? await chromium.executablePath 
-      : undefined;
-    
-    browser = await puppeteer.launch({
-      args: chromium ? chromium.args : ['--no-sandbox', '--disable-setuid-sandbox'],
-      defaultViewport: chromium ? chromium.defaultViewport : { width, height },
-      executablePath,
+    browser = await chromium.launch({
       headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     
     const page = await browser.newPage();
-    await page.setViewport({ width, height });
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setViewportSize({ width, height });
+    await page.setContent(html, { waitUntil: 'networkidle' });
     
     const imageBuffer = await page.screenshot({
       type: 'png',
