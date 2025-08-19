@@ -1,0 +1,19 @@
+{
+  "name": "discord-welcome-bot",
+  "version": "1.0.0",
+  "description": "Discord bot that generates welcome cards using Canvas API",
+  "main": "discord-bot-integration.js",
+  "scripts": {
+    "start": "node discord-bot-integration.js",
+    "dev": "nodemon discord-bot-integration.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": ["discord", "bot", "welcome", "image", "canvas"],
+  "author": "Your Name",
+  "license": "MIT"
+}
