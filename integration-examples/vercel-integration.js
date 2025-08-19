@@ -1,7 +1,7 @@
 // 🚀 PRODUCTION READY - Integration with Your Vercel Domain
 // template-maker-pro-4upiasdasd.vercel.app
 
-// ✅ TESTED AND WORKING API CALL
+// ✅ TESTED AND WORKING API CALL - CONFIRMED GENERATING PNG IMAGES!
 async function generateWelcomeCard(name, role, timezone, skills, projects) {
   const response = await fetch('https://template-maker-pro-4upiasdasd.vercel.app/api/generate-image', {
     method: 'POST',
