@@ -165,34 +165,103 @@ function generateWelcomeCardHTML(data: any) {
 </html>`;
 }
 
-// Convert HTML to image using Playwright
-async function htmlToImage(html: string) {
-  let browser;
+// Generate Canvas-based image (serverless-friendly)
+function generateCanvasImage(data: any): string {
+  // Create a simple Canvas-style approach using data URLs
+  const canvas = createVirtualCanvas(600, 800);
   
-  try {
-    const { chromium } = await import('playwright-core');
-    
-    browser = await chromium.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    
-    const page = await browser.newPage();
-    await page.setViewportSize({ width: 600, height: 800 });
-    await page.setContent(html, { waitUntil: 'networkidle' });
-    
-    const imageBuffer = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-      clip: { x: 0, y: 0, width: 600, height: 800 }
-    });
-    
-    return imageBuffer;
-  } finally {
-    if (browser) {
-      await browser.close();
+  // Draw background gradient
+  canvas.fillStyle = '#1a1a2e';
+  canvas.fillRect(0, 0, 600, 800);
+  
+  // Draw borders
+  canvas.fillStyle = 'rgba(255, 215, 0, 0.3)';
+  canvas.fillRect(0, 0, 600, 5);
+  canvas.fillRect(0, 795, 600, 5);
+  
+  // Profile circle
+  canvas.fillStyle = '#ffd700';
+  canvas.beginPath();
+  canvas.arc(480, 100, 50, 0, 2 * Math.PI);
+  canvas.fill();
+  
+  // Text elements
+  canvas.fillStyle = '#ffffff';
+  canvas.font = '28px Arial';
+  canvas.fillText(`👋 Welcome ${data.name}!`, 60, 100);
+  
+  canvas.fillStyle = '#a8a8a8';
+  canvas.font = '18px Arial';
+  canvas.fillText(data.role, 60, 140);
+  
+  canvas.fillStyle = '#ffd700';
+  canvas.font = '20px Arial';
+  canvas.fillText('🌍 Timezone', 60, 220);
+  
+  canvas.fillStyle = '#ffffff';
+  canvas.font = '16px Arial';
+  canvas.fillText(data.timezone, 60, 250);
+  
+  canvas.fillStyle = '#ffd700';
+  canvas.font = '20px Arial';
+  canvas.fillText('🔨 Skills', 60, 350);
+  
+  canvas.fillStyle = '#ffffff';
+  canvas.font = '16px Arial';
+  const skillsLines = wrapText(data.skills);
+  skillsLines.forEach((line, i) => {
+    canvas.fillText(line, 60, 380 + (i * 22));
+  });
+  
+  canvas.fillStyle = '#ffd700';
+  canvas.font = '20px Arial';
+  canvas.fillText('🚀 Projects', 60, 480);
+  
+  canvas.fillStyle = '#ffffff';
+  canvas.font = '16px Arial';
+  const projectsLines = wrapText(data.projects);
+  projectsLines.forEach((line, i) => {
+    canvas.fillText(line, 60, 510 + (i * 22));
+  });
+  
+  return canvas.toDataURL('image/png');
+}
+
+function createVirtualCanvas(width: number, height: number) {
+  // Virtual canvas implementation for serverless
+  const commands: any[] = [];
+  
+  return {
+    fillStyle: '',
+    font: '',
+    fillRect: (x: number, y: number, w: number, h: number) => commands.push({type: 'fillRect', x, y, w, h}),
+    fillText: (text: string, x: number, y: number) => commands.push({type: 'fillText', text, x, y}),
+    beginPath: () => commands.push({type: 'beginPath'}),
+    arc: (x: number, y: number, r: number, start: number, end: number) => commands.push({type: 'arc', x, y, r, start, end}),
+    fill: () => commands.push({type: 'fill'}),
+    toDataURL: (format: string) => {
+      // Return a simple base64 encoded small PNG for now
+      // In production, you'd process these commands to generate actual image
+      return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    }
+  };
+}
+
+function wrapText(text: string, maxLength: number = 50): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if ((currentLine + word).length <= maxLength) {
+      currentLine += (currentLine ? ' ' : '') + word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
     }
   }
+  if (currentLine) lines.push(currentLine);
+  return lines;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -205,18 +274,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const validatedData = ImageGenerationRequest.parse(req.body);
     const { data } = validatedData;
 
-    // Generate HTML
-    const html = generateWelcomeCardHTML(data);
+    // Generate SVG first
+    const svgContent = generateWelcomeCardSVG(data);
     
-    // Convert to image
-    const imageBuffer = await htmlToImage(html);
-
-    // Set response headers
+    // Convert SVG to PNG using Sharp
+    const sharp = (await import('sharp')).default;
+    const pngBuffer = await sharp(Buffer.from(svgContent))
+      .png()
+      .toBuffer();
+    
+    // Set response headers for PNG
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Disposition', 'attachment; filename="welcome-card.png"');
     
-    // Send the image
-    res.send(imageBuffer);
+    // Send the PNG
+    res.send(pngBuffer);
 
   } catch (error) {
     console.error('Error generating image:', error);
@@ -226,4 +298,79 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(500).json({ error: 'Internal server error', details: error.message });
     }
   }
+}
+
+// Generate SVG welcome card (much simpler and reliable)
+function generateWelcomeCardSVG(data: any): string {
+  const skillsLines = wrapText(data.skills, 45);
+  const projectsLines = wrapText(data.projects, 45);
+  
+  let skillsY = 380;
+  let projectsY = skillsY + 60 + (skillsLines.length * 22);
+  
+  const skillsTextElements = skillsLines.map((line, index) => 
+    `<text x="60" y="${skillsY + 30 + (index * 22)}" fill="#ffffff" font-size="16" font-family="Arial, sans-serif">${escapeXml(line)}</text>`
+  ).join('\n    ');
+  
+  const projectsTextElements = projectsLines.map((line, index) => 
+    `<text x="60" y="${projectsY + 30 + (index * 22)}" fill="#ffffff" font-size="16" font-family="Arial, sans-serif">${escapeXml(line)}</text>`
+  ).join('\n    ');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#16213e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f3460;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="600" height="800" fill="url(#bgGradient)" />
+  
+  <!-- Top border -->
+  <rect x="0" y="0" width="600" height="5" fill="rgba(255, 215, 0, 0.3)" />
+  
+  <!-- Bottom border -->
+  <rect x="0" y="795" width="600" height="5" fill="rgba(255, 215, 0, 0.3)" />
+  
+  <!-- Profile circle -->
+  <circle cx="480" cy="100" r="50" fill="#ffd700" />
+  <text x="480" y="115" text-anchor="middle" fill="#1a1a2e" font-size="32" font-family="Arial, sans-serif">👤</text>
+  
+  <!-- Welcome header -->
+  <text x="60" y="100" fill="#ffffff" font-size="28" font-weight="bold" font-family="Arial, sans-serif">👋 Welcome ${escapeXml(data.name)}!</text>
+  
+  <!-- Role -->
+  <text x="60" y="140" fill="#a8a8a8" font-size="18" font-family="Arial, sans-serif">${escapeXml(data.role)}</text>
+  
+  <!-- Timezone section -->
+  <text x="60" y="220" fill="#ffd700" font-size="20" font-weight="600" font-family="Arial, sans-serif">🌍 Timezone</text>
+  <text x="60" y="250" fill="#ffffff" font-size="16" font-family="Arial, sans-serif">${escapeXml(data.timezone)}</text>
+  
+  <!-- Skills section -->
+  <text x="60" y="350" fill="#ffd700" font-size="20" font-weight="600" font-family="Arial, sans-serif">🔨 Skills</text>
+  ${skillsTextElements}
+  
+  <!-- Projects section -->
+  <text x="60" y="${projectsY}" fill="#ffd700" font-size="20" font-weight="600" font-family="Arial, sans-serif">🚀 Projects</text>
+  ${projectsTextElements}
+  
+  <!-- Footer -->
+  <text x="540" y="770" text-anchor="end" fill="#7d8590" font-size="12" font-family="Arial, sans-serif">Generated by Image API</text>
+</svg>`;
+}
+
+function escapeXml(unsafe: string): string {
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
 }
