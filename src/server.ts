@@ -49,17 +49,43 @@ const ImageGenerationRequest = z.object({
 type ImageGenerationData = z.infer<typeof ImageGenerationRequest>;
 type DiscordWelcomeData = z.infer<typeof DiscordWelcomeRequest>;
 
-// Helper function to fetch and load image from URL
+// Helper function to fetch and load image from URL (handles WebP conversion)
 async function fetchAndLoadImage(url: string): Promise<any> {
   try {
+    console.log('🌐 Fetching image from:', url);
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.status}`);
     }
+    
     const buffer = await response.arrayBuffer();
-    return await loadImage(Buffer.from(buffer));
+    const imageBuffer = Buffer.from(buffer);
+    
+    // Check if it's a WebP image and convert to PNG using Sharp
+    const contentType = response.headers.get('content-type');
+    console.log('📷 Image content type:', contentType);
+    
+    if (contentType?.includes('webp') || url.includes('.webp')) {
+      console.log('🔄 Converting WebP to PNG...');
+      const pngBuffer = await sharp(imageBuffer)
+        .png()
+        .toBuffer();
+      return await loadImage(pngBuffer);
+    } else {
+      // Try to load directly first
+      try {
+        return await loadImage(imageBuffer);
+      } catch (loadError) {
+        console.log('🔄 Direct load failed, trying Sharp conversion...');
+        // If direct load fails, try converting with Sharp anyway
+        const pngBuffer = await sharp(imageBuffer)
+          .png()
+          .toBuffer();
+        return await loadImage(pngBuffer);
+      }
+    }
   } catch (error) {
-    console.warn('Failed to load image from URL:', url, error);
+    console.warn('❌ Failed to load image from URL:', url, error);
     return null;
   }
 }
