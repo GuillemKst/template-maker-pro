@@ -6,12 +6,16 @@ The original `canvas` library requires native dependencies that don't work on se
 
 ## ✅ Solution: HTML/CSS to PNG
 
-I've created a **serverless-friendly version** that uses HTML/CSS and Puppeteer to generate images.
+I've created a **serverless-friendly version** that uses HTML/CSS and Playwright to generate images.
 
 ## 📁 Files
 
 - `src/server.ts` - **Original Canvas version** (for local development)
-- `src/server-serverless.ts` - **Serverless version** (for Vercel/Netlify)
+- `api/` - **Vercel serverless functions**
+  - `generate-image.ts` - Main image generation endpoint
+  - `health.ts` - Health check
+  - `docs.ts` - API documentation
+  - `index.ts` - Root endpoint
 - `vercel.json` - **Vercel configuration**
 
 ## 🌐 Deploy to Vercel

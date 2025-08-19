@@ -3,7 +3,10 @@
 
 // 1. MAIN API CALL FUNCTION (Required)
 async function generateWelcomeCard(name, role, timezone, skills, projects) {
-  const response = await fetch('http://localhost:3000/api/generate-image', {
+  // Use your deployed Vercel URL or localhost for development
+  const API_URL = process.env.API_URL || 'https://your-app.vercel.app' || 'http://localhost:3000';
+  
+  const response = await fetch(`${API_URL}/api/generate-image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

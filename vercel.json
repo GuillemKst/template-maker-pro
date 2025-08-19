@@ -1,19 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "src/server-serverless.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "src/server-serverless.ts"
-    }
-  ],
   "functions": {
-    "src/server-serverless.ts": {
+    "api/*.ts": {
       "maxDuration": 30
     }
   }
