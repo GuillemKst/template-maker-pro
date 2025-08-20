@@ -20,6 +20,7 @@ const DiscordWelcomeRequest = z.object({
     timezone: z.string(),
     skills: z.string(),
     projects: z.string(),
+    description: z.string().optional(),
     profilePicUrl: z.string().url().optional()
   })
 });
@@ -127,7 +128,7 @@ function wrapText(context: any, text: string, maxWidth: number): string[] {
 
 // Helper function to create a Discord welcome card template (matching portfolio design exactly)
 function createDiscordWelcomeCardTemplate(data: DiscordWelcomeData['data']) {
-  const { name, role, timezone, skills, projects } = data;
+  const { name, role, timezone, skills, projects, description } = data;
   
   return {
     width: 500,
@@ -138,7 +139,7 @@ function createDiscordWelcomeCardTemplate(data: DiscordWelcomeData['data']) {
       // Profile image placeholder will be at x: 20, y: 35, size: 140x140
       
       // Welcome with name (below profile image) - positioned as a column
-      { key: 'welcome_name', x: 20, y: 200, fontSize: 22, color: '#000000', text: `👋 ${name}`, align: 'left' as const },
+      { key: 'welcome_name', x: 20, y: 200, fontSize: 22, color: '#000000', text: ` ${name}`, align: 'left' as const },
       
       // Role/Description (below name) - same x position to create column
       { key: 'role', x: 20, y: 230, fontSize: 11, color: '#666666', text: role, align: 'left' as const },
@@ -147,7 +148,7 @@ function createDiscordWelcomeCardTemplate(data: DiscordWelcomeData['data']) {
       { key: 'timezone', x: 20, y: 255, fontSize: 14, color: '#000000', text: timezone, align: 'left' as const },
       
       // Welcome message (at bottom of left column) - same x position
-      { key: 'welcome_msg', x: 20, y: 270, fontSize: 11, color: '#000000', text: 'Welcome to the server!', align: 'left' as const },
+      { key: 'welcome_msg', x: 20, y: 270, fontSize: 11, color: '#000000', text:  projects.startsWith('http') ? 'SOCIAL' : 'PROJECTS', align: 'left' as const },
       
       // RIGHT SIDE SECTIONS - positioned to the right (same as portfolio)
       // Skills header
@@ -160,14 +161,14 @@ function createDiscordWelcomeCardTemplate(data: DiscordWelcomeData['data']) {
       
       // Info header (replacing the third section to match portfolio structure)
       { key: 'info_header', x: 200, y: 215, fontSize: 18, color: '#000000', text: 'INFO', align: 'left' as const },
-      { key: 'info_value', x: 200, y: 230, fontSize: 11, color: '#333333', text: 'New member - please give them a warm welcome!', maxWidth: 180, align: 'left' as const }
+      { key: 'info_value', x: 200, y: 230, fontSize: 11, color: '#333333', text: description , maxWidth: 180, align: 'left' as const }
     ]
   };
 }
 
 // Helper function to create a Portfolio card template (matching the provided design)
 function createPortfolioCardTemplate(data: PortfolioCardData['data']) {
-  const { name, location, title, handle, description, projects, skills } = data;
+    const { name, location, title, handle, description, projects, skills, profilePicUrl } = data;
   
   return {
     width: 500,
